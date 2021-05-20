@@ -148,11 +148,19 @@ int main(int argc, char const *argv[]){
 
 			}
 			//Working on...
-			/*
+			
 			else if(re(headers[0], "[Pp][Oo][Ss][Tt][:ascii:]*", 0, NULL)) {
-				char * req=headers[h_num-1];
-				
-			}*/
+				char * user=headers[h_num-1];
+				user=strtok(user, "&");
+				char * pass=strtok(NULL, "&");
+				user=strtok(user, "=");
+				pass=strtok(pass, "=");
+				db=put_value(db, user, pass);
+				if (!db){
+					printf("%s\n", "Failed to open database, exiting");
+					return 1;
+				}
+			}
 			else{
 				//bad request
 				send(new_socket , br , STR_LEN(br) , 0 );

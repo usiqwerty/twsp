@@ -53,3 +53,14 @@ char * comma_value(int filefd, int type, char *val, size_t id){
 
 	return 0; //nothing found
 }
+FILE * put_value(FILE * filefd, char * key, char * val){
+	fclose(filefd);
+	filefd=fopen(CSV_FILE, "a");
+	char * tmp = strcat(";", key);
+	tmp = strcat(tmp, ":");
+	tmp = strcat(tmp, val);
+	fwrite(tmp,1, strlen(tmp), filefd);
+	fclose(filefd);
+	filefd=fopen(CSV_FILE, "r");
+	return filefd;
+}

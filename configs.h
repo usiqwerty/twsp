@@ -5,6 +5,7 @@
 //csv.c
 int file_routine(FILE* filefd);
 char * comma_value(int filefd, int type, char *val, size_t id);
+FILE * put_value(FILE * filefd, char * key, char * val);
 
 //php.c
 int dirlist(char *d, char *list[]);
