@@ -25,7 +25,7 @@ int file_routine(FILE* filefd){
 	s = comma_values;
 	//comma_values+=SIZE_OF(size_t);
 	comma_index=calloc(size ,SIZE_OF(char *));
-	comma_index[0]=strtok(comma_values, ";");
+	comma_index[0]=strtok(comma_values, ";")+7;
 	while(comma_index[count]){
 		count++;
 		comma_index[count]=strtok(NULL, ";");
@@ -41,18 +41,18 @@ char * comma_value(FILE* filefd, int type, char *val, size_t id){
 	ii=0;
 	char * tmp;
 	if (type==0){ //key
-		for (count=1;count<(*s); count++){
-			printf("%ld\n", count);
+		for (count=0;count<(*s); count++){
 			tmp=strtok(comma_index[count], ";");
+			tmp=strtok(tmp, ":");
 			if (!strcmp(tmp, val)){
 				puts("OK!");
-				return strtok(tmp, ":");
+				tmp=strtok(NULL, ":");
+				*(tmp-1)=':';
+				return tmp;
 			}
 			else{
-				puts("No");
 				*(tmp-1)=':';
 			}
-			puts(tmp);
 		}
 	}
 	else if (id<*s) {//works only if id is smaller than amount of entries

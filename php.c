@@ -74,7 +74,9 @@ char * parse_cookie(char* cookie, int pos){
 	if (pos==1){
 		return piece;
 	}
-	else if(pos==2){
+	//else if(pos==2){
+	else{
+		puts("a");
 		return strtok(NULL, "=");
 	}
 	return "";

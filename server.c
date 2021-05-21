@@ -147,13 +147,19 @@ int main(int argc, char const *argv[]){
 				}
 				else{
 					find_cookie(headers, cookies, h_num);
-					puts("123");
 					if (cookies[0]!=0){
-						char *user = parse_cookie(cookies[0], 1); //get value
-						char *pass = parse_cookie(cookies[0], 2); //get value
+						char *user = strtok(cookies[0], "=");
+						char *pass = strtok(NULL, "=");
+						char * correct_pass = comma_value(db, 0, user, 0);
 
-						puts("Hello");
-						if ( !strcmp( comma_value(db, 0, user, 0) , pass) ){
+						//just using existing integer, i dont want to create new one
+						r= strlen(correct_pass);
+						if (strlen(pass)<r){
+							r=strlen(pass);
+						}
+						//the problem is that one string is null-terminated array, another is not
+						//so, we have to compare only nonzero-part, without terminator
+						if ( !strncmp(correct_pass, pass,r) ){
 							puts("Correct password");
 							if (!strcmp(tmp, "files/page")){
 								filename[0]='\0';
@@ -163,10 +169,13 @@ int main(int argc, char const *argv[]){
 
 								f=fopen(filename, "r");
 							}
-							else {
+							//strange situation
+							//it should not be
+							/*else {
+								
 								puts("Bye");
 								fclose(f);
-							}
+							}*/
 						}
 						else{
 							puts("Wrong Password");
@@ -174,7 +183,6 @@ int main(int argc, char const *argv[]){
 
 						
 					}
-					puts("Hi!");
 					send(new_socket, server,STR_LEN(server),0);
 					r=fread(buffer, 1, 1024, f);
 					send(new_socket, buffer, r, 0);
