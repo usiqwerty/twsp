@@ -46,13 +46,12 @@ void find_cookie(char * headers[], char * cookies[], int h_num){
 	int j=0;
 	//while we're sure string is non-empy
 	for(i=0;i<h_num;i++){
-		string_lowercase(headers[i]);
-		if( strstr(headers[i], "cookie:") ){
+		//string_lowercase(headers[i]);
+		if( strstr(headers[i], "Cookie:") ){
 			tmp_new=strtok(headers[i],":");
 			tmp_new=strtok(NULL,":")+1;	//because of whitespace
 
 			cookies[j]=strtok(tmp_new, ";");
-
 			while(cookies[j]){
 				j++;
 				cookies[j]=strtok(NULL, ";");
@@ -62,7 +61,11 @@ void find_cookie(char * headers[], char * cookies[], int h_num){
 
 			}
 		}
+		else{
+			printf("Nope, %d\n", i);
+		}
 	}
+	i=0;
 
 }
 char * parse_cookie(char* cookie, int pos){
@@ -71,9 +74,10 @@ char * parse_cookie(char* cookie, int pos){
 	if (pos==1){
 		return piece;
 	}
-	else{
+	else if(pos==2){
 		return strtok(NULL, "=");
 	}
+	return "";
 }
 
 /*int parser(char *filename, int sockfd){
@@ -115,15 +119,19 @@ int run_code(int posit, char * cookies[]){
 	}
 }
 int main(){
-	char a[30]="Cookie: a=11; b=; 0; c=1213!";
-	char b[30]="Cookie: d=1d; e=1d; f=1vs13!";
-	char * c[]={a,b,""};
+	int i;
+	char *a="\0";
+	char *b="\0";
+	a=strcpy(a,"Cookie: a=11; b=; 0; c=1213!");
+	b=strcpy(b,"Cookie: d=1d; e=1d; f=1vs13!");
+	char * c[5];
+	c[0]=a;
+	c[1]=b;
 	char *coo[10];
-	string_lowercase(a);
-	find_cookie(c, coo, 2);
-	for (i=0; i<6;i++)
-		puts(coo[i]);
+	//string_lowercase(a);
+	//find_cookie(c, coo, 2);
+	//for (i=0; i<6;i++)
+	//	puts(coo[i]);
 	return 0;
-}
-*/
+}*/
 
