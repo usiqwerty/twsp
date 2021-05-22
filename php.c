@@ -61,9 +61,6 @@ void find_cookie(char * headers[], char * cookies[], int h_num){
 
 			}
 		}
-		else{
-			printf("Nope, %d\n", i);
-		}
 	}
 	i=0;
 
@@ -76,7 +73,6 @@ char * parse_cookie(char* cookie, int pos){
 	}
 	//else if(pos==2){
 	else{
-		puts("a");
 		return strtok(NULL, "=");
 	}
 	return "";

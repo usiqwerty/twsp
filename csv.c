@@ -6,12 +6,17 @@
 
 #define SIZE_OF(x) sizeof(x)
 int loaded=0;
+char* saveptr;
 char* comma_values;
-char** comma_index;
+char* *comma_index;
 size_t count;
 size_t * s;
 long size;
 int ii;
+void csv_free(){
+	free(comma_index);
+	free(comma_values-7);	
+}
 int file_routine(FILE* filefd){
 	fseek(filefd, 0, SEEK_END);
 	size = ftell(filefd);
@@ -23,9 +28,10 @@ int file_routine(FILE* filefd){
 
 	count=0;
 	s = comma_values;
+	comma_values+=7;
 	//comma_values+=SIZE_OF(size_t);
 	comma_index=calloc(size ,SIZE_OF(char *));
-	comma_index[0]=strtok(comma_values, ";")+7;
+	comma_index[0]=strtok(comma_values, ";");
 	while(comma_index[count]){
 		count++;
 		comma_index[count]=strtok(NULL, ";");
@@ -42,24 +48,23 @@ char * comma_value(FILE* filefd, int type, char *val, size_t id){
 	char * tmp;
 	if (type==0){ //key
 		for (count=0;count<(*s); count++){
-			tmp=strtok(comma_index[count], ";");
-			tmp=strtok(tmp, ":");
+			tmp=comma_index[count];
+			tmp=strtok_r(tmp, ":", &saveptr);
+			if(!tmp){return "";}
 			if (!strcmp(tmp, val)){
-				puts("OK!");
-				tmp=strtok(NULL, ":");
-				*(tmp-1)=':';
+				tmp=strtok_r(NULL, ":", &saveptr);
+				*(tmp+strlen(tmp)-1)=':';
 				return tmp;
 			}
 			else{
-				*(tmp-1)=':';
+				*(tmp+strlen(tmp)-1)=':';
 			}
 		}
 	}
 	else if (id<*s) {//works only if id is smaller than amount of entries
-		strtok(comma_index[id], ":");
-		return strtok(NULL, ":");
+		strtok_r(comma_index[id], ":", &saveptr);
+		return strtok_r(NULL, ":", &saveptr);
 	}
-	printf("Done");
 	return ""; //nothing found
 }
 FILE * put_value(FILE * filefd, char * key, char * val){
@@ -72,14 +77,11 @@ FILE * put_value(FILE * filefd, char * key, char * val){
 	strcat(tmp, ":");
 	strcat(tmp, val);
 	size+=strlen(tmp);
-	puts(tmp);
 	(*s)++;
 	strcat(comma_values+7, tmp);
-	puts(comma_values+7);
 	fwrite(comma_values, 1, size, filefd);
 	fclose(filefd);
 
 	filefd=fopen(CSV_FILE, "r");
-	puts("FInally opened");
 	return filefd;
 }

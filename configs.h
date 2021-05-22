@@ -3,6 +3,7 @@
 #define CSV_FILE "database.csv"
 
 //csv.c
+void csv_free();
 int file_routine(FILE * filefd);
 char * comma_value(FILE * filefd, int type, char *val, size_t id);
 FILE * put_value(FILE * filefd, char * key, char * val);

@@ -8,7 +8,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <regex.h>
-
+#include <signal.h>
 //configuration
 #include "configs.h"
 
@@ -46,6 +46,8 @@ char * tmp;
 //number of headers
 int h_num;
 
+//Ctrl-C server shutdown
+void stop();
 
 int main(int argc, char const *argv[]){
 	char *br = "HTTP/1.0 400 Bad Request\n\n";
@@ -56,6 +58,7 @@ int main(int argc, char const *argv[]){
 	//maybe it is better to use 201 Created in this case
 	char reg_complete[120]="HTTP/1.0 200 OK\nContent-Type: text/html; charset=UTF-8\nServer:Enigma-in-C/1.0\nSet-Cookie: ";
 
+	char * reg_incomplete="HTTP/1.0 409 Conflict\nContent-Type: text/html; charset=UTF-8\nServer:Enigma-in-C/1.0\n\n<center><h1>Try another username, registration incomplete</h1></center>";
 	meth=malloc(6);
 	printf("%s\n", NAME);
 	FILE *db=fopen(CSV_FILE, "r+");
@@ -99,7 +102,7 @@ int main(int argc, char const *argv[]){
 		fclose(db);
 		return 1;
 	}
-
+	signal(SIGINT, stop);
 //main loop
 	while (run){
 		new_socket = accept(server_fd, (struct sockaddr *) &address, (socklen_t*) &addrlen);
@@ -151,6 +154,7 @@ int main(int argc, char const *argv[]){
 						char *user = strtok(cookies[0], "=");
 						char *pass = strtok(NULL, "=");
 						char * correct_pass = comma_value(db, 0, user, 0);
+
 
 						//just using existing integer, i dont want to create new one
 						r= strlen(correct_pass);
@@ -204,24 +208,41 @@ int main(int argc, char const *argv[]){
 				user=strtok(NULL, "=");
 				pass=strtok(pass, "=");
 				pass=strtok(NULL, "=");
-				db=put_value(db, user, pass);
-				if (!db){
-					printf("%s\n", "Failed to open database, exiting");
-					return 1;
-				}
-				mkdir(user, 0777);
-				char nu[64];
-				strcpy(nu, user);
-				strcat(nu, "/page");
-				FILE * new_user = fopen(nu, "w");
-				fwrite(new, 1, STR_LEN(new), new_user);
-				fclose(new_user);
 
-				strcat(reg_complete, user);
-				strcat(reg_complete, "=");
-				strcat(reg_complete, pass);
-				strcat(reg_complete, "\n\n");
-				send(new_socket , reg_complete , STR_LEN(reg_complete) + strlen(user) + strlen(pass) +3, 0);
+				//personal folder
+				//-1 if error
+				r=mkdir(user, 0777);
+
+				if (r<0){
+					//if username is already present
+					send(new_socket , reg_incomplete , STR_LEN(reg_incomplete), 0);
+				}
+				else{
+					//user is new, put his data into db
+					db=put_value(db, user, pass);
+					if (!db){
+						printf("%s\n", "Failed to open database, exiting");
+						return 1;
+					}
+					
+					
+					char nu[64];
+					strcpy(nu, user);
+					strcat(nu, "/page");
+					//and personal page
+					FILE * new_user = fopen(nu, "w");
+					fwrite(new, 1, STR_LEN(new), new_user);
+					fclose(new_user);
+
+					//generate HTTP response with Set-Cookie
+					strcat(reg_complete, user);
+					strcat(reg_complete, "=");
+					strcat(reg_complete, pass);
+					strcat(reg_complete, "\n\n");
+					//send the response
+					send(new_socket , reg_complete , STR_LEN(reg_complete) + strlen(user) + strlen(pass) +3, 0);
+					//user now have authorization cooike
+				}
 			}
 			else{
 				//bad request
@@ -233,12 +254,18 @@ int main(int argc, char const *argv[]){
 			buffer[i]=0;
 		}
 	}
+	csv_free();
 	free(meth);
 	close(server_fd);
 	fclose(db);
+	puts("Server stopped");
 	return 0;
 }
-
+void stop(){
+	run=0;
+	puts("Stopping server, one last query");
+	
+}
 int re(char *str, char * pat, int max, regmatch_t groups[]){
 	int reti;
 	regcomp(&regex, pat, REG_EXTENDED);
