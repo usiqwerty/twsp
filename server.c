@@ -46,6 +46,7 @@ char * tmp;
 //number of headers
 int h_num;
 
+char correct_pass[32];
 //Ctrl-C server shutdown
 void stop();
 
@@ -57,27 +58,16 @@ int main(int argc, char const *argv[]){
 
 	//maybe it is better to use 201 Created in this case
 	char reg_complete[120]="HTTP/1.0 200 OK\nContent-Type: text/html; charset=UTF-8\nServer:Enigma-in-C/1.0\nSet-Cookie: ";
-
+	char *s_err="HTTP/1.0 500 Internal server error\nContent-Type: text/html; charset=UTF-8\nServer:Enigma-in-C/1.0\n\n<center><h1>500 Internal server error</h1></center>";
 	char * reg_incomplete="HTTP/1.0 409 Conflict\nContent-Type: text/html; charset=UTF-8\nServer:Enigma-in-C/1.0\n\n<center><h1>Try another username, registration incomplete</h1></center>";
 	meth=malloc(6);
 	printf("%s\n", NAME);
-	FILE *db=fopen(CSV_FILE, "r+");
-	if (!db){
-		printf("%s\n", "Failed to open database, exiting");
-		return 1;
-	}
 
-	r=file_routine(db);
-	if (r==2){
-		printf("%s\n", "Superhuge error, exiting");
-		fclose(db);
-		return 1;
-	}
 	// Creating socket
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if ( server_fd == 0){
 		printf("Error: %s\n", "socket failure (1)");
-		fclose(db);
+		//fclose(db);
 		return 1;
 	}
 
@@ -89,7 +79,7 @@ int main(int argc, char const *argv[]){
 	if (r<0){
 		printf("Error: %s\n", "address bind failure (2)");
 		close(server_fd);
-		fclose(db);
+		//fclose(db);
 		return 1;
 	}
 	else{
@@ -99,7 +89,7 @@ int main(int argc, char const *argv[]){
 	if (r < 0){
 		printf("Error: %s\n", "socket listen failure (3)");
 		close(server_fd);
-		fclose(db);
+		//fclose(db);
 		return 1;
 	}
 	signal(SIGINT, stop);
@@ -110,7 +100,7 @@ int main(int argc, char const *argv[]){
 		{
 			printf("Error: %s\n", "socket accept failure (4)");
 			close(server_fd);
-			fclose(db);
+			//fclose(db);
 			return 1;
 		}
 		r=read(new_socket , buffer, 1024);
@@ -150,42 +140,49 @@ int main(int argc, char const *argv[]){
 				}
 				else{
 					find_cookie(headers, cookies, h_num);
-					if (cookies[0]!=0){
+					if (!strcmp(tmp, "files/page") && cookies[0]!=0){
 						char *user = strtok(cookies[0], "=");
 						char *pass = strtok(NULL, "=");
-						char * correct_pass = comma_value(db, 0, user, 0);
-
+						filename[0]='\0';
+						strcpy(filename, user);
+						strcat(filename, "/pass");
+						FILE * file_pass=fopen(filename, "r");
+						if (!file_pass){
+							correct_pass[0]=0;
+						}
+						else {
+							fread(correct_pass, 1, 32, file_pass);
+							fclose(file_pass);
+						}
 
 						//just using existing integer, i dont want to create new one
-						r= strlen(correct_pass);
+						r = strlen(correct_pass);
 						if (strlen(pass)<r){
 							r=strlen(pass);
 						}
+						puts(pass);
+						puts(correct_pass);
 						//the problem is that one string is null-terminated array, another is not
 						//so, we have to compare only nonzero-part, without terminator
-						if ( !strncmp(correct_pass, pass,r) ){
+						if ( !strncmp(correct_pass, pass,strlen(correct_pass)) ){
 							puts("Correct password");
-							if (!strcmp(tmp, "files/page")){
-								filename[0]='\0';
-								strcpy(filename, user);
-
-								strcat(filename, "/page");
-
-								f=fopen(filename, "r");
+							for (i=0;i<64;i++){
+								filename[i]=0;
 							}
-							//strange situation
-							//it should not be
-							/*else {
-								
-								puts("Bye");
-								fclose(f);
-							}*/
+							strcpy(filename, user);
+							strcat(filename, "/page");
+							puts("savfi");
+							f=fopen(filename, "r");
 						}
 						else{
 							puts("Wrong Password");
+							f=fopen("files/login.html", "r");
 						}
 
 						
+					}
+					else if (!strcmp(tmp, "files/page") && cookies[0]==0){
+						f=fopen("files/login.html", "r");
 					}
 					send(new_socket, server,STR_LEN(server),0);
 					r=fread(buffer, 1, 1024, f);
@@ -195,7 +192,6 @@ int main(int argc, char const *argv[]){
 						send(new_socket, buffer, r, 0);
 					}
 					fclose(f);
-					//free(tmp);
 				}
 
 			}
@@ -218,20 +214,23 @@ int main(int argc, char const *argv[]){
 					send(new_socket , reg_incomplete , STR_LEN(reg_incomplete), 0);
 				}
 				else{
-					//user is new, put his data into db
-					db=put_value(db, user, pass);
-					if (!db){
-						printf("%s\n", "Failed to open database, exiting");
-						return 1;
-					}
+
 					
 					
 					char nu[64];
+
+					//and personal page
 					strcpy(nu, user);
 					strcat(nu, "/page");
-					//and personal page
 					FILE * new_user = fopen(nu, "w");
 					fwrite(new, 1, STR_LEN(new), new_user);
+					fclose(new_user);
+
+					//store password
+					strcpy(nu, user);
+					strcat(nu, "/pass");
+					new_user = fopen(nu, "w");
+					fwrite(pass, 1, strlen(pass), new_user);
 					fclose(new_user);
 
 					//generate HTTP response with Set-Cookie
@@ -254,10 +253,8 @@ int main(int argc, char const *argv[]){
 			buffer[i]=0;
 		}
 	}
-	csv_free();
 	free(meth);
 	close(server_fd);
-	fclose(db);
 	puts("Server stopped");
 	return 0;
 }

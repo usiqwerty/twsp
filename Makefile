@@ -1,5 +1,5 @@
 CC=gcc-10
-FILES=server.c csv.c php.c
+FILES=server.c php.c
 OUTDIR=out
 all: server
 server:
