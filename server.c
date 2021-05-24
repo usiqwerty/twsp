@@ -134,12 +134,15 @@ int main(int argc, char const *argv[]){
 				puts(tmp);
 
 				FILE *f=fopen(tmp, "r");
+
+				//if file notfound and it is not the personal page url
 				if (!f && strcmp(tmp, "files/page")){
 					//file not found
 					send(new_socket , nf , STR_LEN(nf) , 0 );
 				}
 				else{
 					find_cookie(headers, cookies, h_num);
+					//registered user asks for his page
 					if (!strcmp(tmp, "files/page") && cookies[0]!=0){
 						char *user = strtok(cookies[0], "=");
 						char *pass = strtok(NULL, "=");
@@ -171,7 +174,7 @@ int main(int argc, char const *argv[]){
 							}
 							strcpy(filename, user);
 							strcat(filename, "/page");
-							puts("savfi");
+
 							f=fopen(filename, "r");
 						}
 						else{
@@ -179,19 +182,26 @@ int main(int argc, char const *argv[]){
 							f=fopen("files/login.html", "r");
 						}
 
-						
 					}
+					//unregistered user asks for files/page
 					else if (!strcmp(tmp, "files/page") && cookies[0]==0){
 						f=fopen("files/login.html", "r");
 					}
-					send(new_socket, server,STR_LEN(server),0);
-					r=fread(buffer, 1, 1024, f);
-					send(new_socket, buffer, r, 0);
-					while(r==1024){
+
+					if(!f){
+						send(new_socket, nf ,STR_LEN(nf),0);
+					}
+					else{
+						send(new_socket, server,STR_LEN(server),0);
 						r=fread(buffer, 1, 1024, f);
 						send(new_socket, buffer, r, 0);
+						while(r==1024){
+							r=fread(buffer, 1, 1024, f);
+							send(new_socket, buffer, r, 0);
+						}
+						fclose(f);
+
 					}
-					fclose(f);
 				}
 
 			}
@@ -214,11 +224,7 @@ int main(int argc, char const *argv[]){
 					send(new_socket , reg_incomplete , STR_LEN(reg_incomplete), 0);
 				}
 				else{
-
-					
-					
 					char nu[64];
-
 					//and personal page
 					strcpy(nu, user);
 					strcat(nu, "/page");
